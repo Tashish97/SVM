@@ -1,0 +1,242 @@
+---
+title: "Support Vector Machine"
+author: "Ashish Toppo"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+   
+Dataset Link: [Social Network Ads Datasets](https://www.kaggle.com/shub99/social-network-ads)   
+Using this data set I need to predict the whether a person will buy the product after seeing the advertisement.  
+**Description:**  
+Content  
+It includes age and estimated salary of the user. The purchased column indicates weather the particular user with age and estimated salary have bought the product or not by viewing the social ads of the product.  
+
+0 : No  
+1 : Yes  
+
+### Reading of the dataset and importing necessary libraries
+```{r,error=FALSE, results = 'hide',warning=FALSE,message=FALSE}
+library(tidyverse)
+library(reshape2)
+library(caTools)
+library(corrplot)
+library(MLmetrics)
+library(e1071)
+data_0 <- read.csv("Social_Network_Ads.csv", stringsAsFactors = TRUE) #converting all strings to factors
+```
+
+```{r}
+#peeping into data
+head(data_0)
+
+# dimension of the dataset
+dim(data_0)
+
+# structure of the dataset
+str(data_0)
+```
+
+### Summary Statistics
+```{r}
+summary(data_0)
+```
+
+**Observations:**  
+1. Variable "Purchased" needs to be converted into a categorical variable.  
+2. Variable "Gender" will be converted into binary.  
+3. Variable "EstimatedSalary" need to be normalized(min-max normalization) after doing EDA on this variable.  
+4. Dropping "User.ID" variable.  
+
+
+### Missng Values and their proportions by columns
+```{r}
+null_cols <- colSums(is.na(data_0))/nrow(data_0)*100
+null_cols[null_cols!=0]
+```
+
+There aren't any missing data in any of the columns.  
+
+### Normaization  
+```{r}
+normalisation <- function(df,col){
+  #`custom function for min-max normalization
+  df[col] <- (df[col]-min(df[col]))/(max(df[col])-min(df[col]))
+  df
+}
+```  
+
+### Preparing the columns  
+```{r}
+#normalizing EstimatedSalary
+#data_1 <- normalisation(data_0,"EstimatedSalary")
+#dropping User.ID 
+data_1 <- data_0 %>% select(!User.ID)
+#Converting Gender to binary
+data_1$Gender <- ifelse(data_1$Gender=="Male",1,0)
+#renaming the column to Male
+data_1 <- data_1 %>% rename(Male=Gender) 
+#converting Purchased into a factor
+data_1$Purchased <- as.factor(data_1$Purchased)
+#look into data
+head(data_1)
+```
+
+### Looking into Columns for EDA  
+
+### for Male
+```{r}
+data_1 %>% ggplot(aes(Male))+geom_bar()
+```
+
+**Observations:**  
+1. Both male and female are almost in equal proportion.  
+2. More than half of data points(<200) are males.  
+
+### for Age  
+```{r}
+data_1 %>% ggplot(aes(Age))+geom_bar()
+```
+**Observations:**  
+1. There is a wavy pattern seen through the bar plot which decreases every age ending with 5(25,35,45,55). Some more depth to identifying this pattern is needed.  
+2. People of age 35 are in the dataset. This might be because most of the population is middle aged, as there are more no. of  within age 25 and 45 who are exposed to ads.  
+3. It's worth checking which gender makes the purchases with age 35.  
+
+
+### for EstimatedSalary  
+```{r}
+data_1 %>% ggplot(aes(EstimatedSalary))+geom_boxplot()
+```
+
+**Observations:**  
+1. There aren't any outliers.  
+2. The approx estimated salary of the user is 70000.
+3. 50% of the users have a salary within 42000 to 90000.  
+4. Only 25% of the users have salary above 90000.  
+
+### for Purchased  
+```{r}
+data_1 %>% ggplot(aes(Purchased))+geom_bar()
+```
+
+**Observations:**  
+1. The class labels are imbalanced it might effect the SVM model.  
+2. It can be seen that almost 35% users made a purchase after seeing the ads.  
+3. It can be because they spent more time on screen. This measurement can help to come up with new advertisement techniques.  
+
+### Some Analysis  
+
+**Q** *How salary is distributed for male and female*    
+```{r}
+data_1 %>% ggplot(aes(EstimatedSalary))+geom_boxplot(aes(fill=as.factor(Male)))
+```
+
+**Observations:**  
+1. Females earn more compared to males.  
+2. The median salary for females is 70000 and for male is ~68000.  
+3. Females have a larger salary range, consider IQR ranging from 42000 to 90000.  
+4. It can be thought as mostly women tend to make purchases compared to men. So gender specific ads might help in increase in sales.  
+
+**Q** *Which age group make more no. of purchases*    
+```{r}
+data_1 %>% ggplot(aes(Age))+geom_bar(aes(fill=Purchased),position = "dodge")
+```
+
+**Observations:**  
+1. The problem with more no of people with age 35 is solved, almost 90% of them didn't made the purchase.  
+2. It's worth noting that early age group(age<40) are mostly exposed to the ads but they didn't made the purchase. So age targeted ads are required to influence young aged people.  
+3. People after the age 26 tend to make purchase as they are in their late twenties and early thirties. Marriage can be a potential factor.  
+4. People after the age 55 make purchases regularly. It might be because of entering the old age, so their needs tend to rise.  
+
+**Q** *Does gender influences purchase irrespective of the salary*    
+```{r}
+data_1 %>% ggplot(aes(EstimatedSalary))+geom_histogram(aes(fill=Purchased),position = "dodge")+facet_wrap(~Male)
+```
+
+**Observations:**  
+1. Compared to males who have a median salary of 68000, females who have a median salary of 70000 surprisingly didn't made more number of purchases.  
+2. Women who earn less and those who earn more made more purchases compared to the women in between the range 50000 to 90000.  
+3. People with salary < 80000 make more purchases and most of them are women.  
+
+**Q** *How salary is distributed for various aged users who made the purchase*    
+```{r}
+data_1 %>% ggplot(aes(EstimatedSalary,Age))+geom_point(aes(color=Purchased))
+```
+1. A good insight is found which shows that people after the age 45 made purchases and if they earn more than 90000 even at younger age(>25) tend to buy after seeing the ads. *So the ads need to be age specific(age<45) and salary specific(salary<90000) to increase more no. of purchases*.  
+
+### Checking of collinearity   
+```{r}
+#we have only two numeric columns
+cor(data_1$Age,data_1$EstimatedSalary)
+```
+
+**Observations:**  
+Weak correlation so *linear kernel* can also be used.  
+
+### Normalizing EstimatedSalry  
+```{r}
+data_1 <- normalisation(data_1,"EstimatedSalary")
+head(data_1)
+```
+
+### Splitting and Modelling  
+```{r}
+set.seed(123) #to prevent the sampling of test ste differently every time we run the markdown
+sample <- sample.split(data_1$Purchased,.7)
+train <- data_1[sample,]
+test <- data_1[!sample,]
+dim(train)
+dim(test)
+```
+
+### Modelling   
+### with default parameters   
+```{r}
+model1 <- svm(Purchased~.,data = train,type="C")
+predict1 <- predict(model1,test)
+summary(model1)
+ConfusionMatrix(predict1,test$Purchased)
+paste("Accuracy:",Accuracy(predict1,test$Purchased))
+paste("AUC",AUC(predict1,test$Purchased))
+```
+
+**Observations:**  
+Default parameters are giving good accuracy, but lets see if we can improve this accuracy with hyperparameter tuning.  
+
+### Hyperparameter tuning   
+```{r}
+tune.model <- tune(svm,as.factor(Purchased)~.,data = train,type="C",ranges = list(cost=10^(-2:3),
+                                                                       kernel=c("linear","radial","polynomial")))
+print(tune.model$best.model)
+print(tune.model$best.parameters)
+print(tune.model$best.performance)
+```
+
+**Observations:**
+The best kernel found is rbf, so lets check for various values of c and gamma.  
+
+```{r}
+tune.model1 <- tune(svm,as.factor(Purchased)~.,data = train,type="C",kernel="radial",ranges = list(cost=10^(-3:5),
+                                                                                       gamma=seq(0,1,.1)))
+print(tune.model1$best.model)
+print(tune.model1$best.parameters)
+print(tune.model1$best.performance)
+```
+
+### Using best parameters   
+```{r}
+model2 <- svm(Purchased~.,data = train,type="C",cost=tune.model1$best.parameters$cost,kernel="radial",gamma=tune.model1$best.parameters$gamma)
+predict2 <- predict(model2,test)
+summary(model2)
+ConfusionMatrix(predict2,test$Purchased)
+paste("Accuracy ",Accuracy(predict2,test$Purchased))
+paste("AUC",AUC(predict2,test$Purchased))
+```
+
+**Observations:**  
+1. The model is performing better after hyper parameter tuning.   
+2. I used set.seed() to keep the sampling same so to match the results in the pdf, but in practice i don't use it.
