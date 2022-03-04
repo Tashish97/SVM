@@ -17,5 +17,5 @@ Biological sciences, including protein classification
 2. Feature Engineering using medical domain knowledge.
 3. Data encoding with custom function for Normalization.
 4. Hyperparameter tuning to find best parameters.
-5. Validation of model using AUC_ROC and Confusion Matrix.
+5. Validation of model using AUC_ROC and Confusion Matrix.  
 **Please look into the pdf for quick look at my work**
