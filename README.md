@@ -1,21 +1,15 @@
-# SVM
-This is a project done using Support Vector Machines Algorithm
-Desription:
-A support vector machine is a supervised learning algorithm that sorts data into two categories. It is trained with a series of data already classified into two categories, building the model as it is initially trained. The task of an SVM algorithm is to determine which category a new data point belongs in. This makes SVM a kind of non-binary linear classifier.
+**Type      :Classification**  
+**Algorithm :SVM(Support Vector Machines)**  
+**Language  :R**  
+**IDE       :RStudio**  
 
-An SVM algorithm should not only place objects into categories, but have the margins between them on a graph as wide as possible.
+Description:  
+Using this data set I need to predict the whether a person will buy the product after seeing the advertisement. SVM is to find a line or a hyperplane which separates the data into classes. An SVM algorithm should not only place objects into categories, but have the margins between them on a graph as wide as possible.  
 
-Some applications of SVM include:
-
-Text and hypertext classification
-Image classification
-Recognizing handwritten characters
-Biological sciences, including protein classification
-
-**Work Done**
-1. EDA on independent variable(s) and dependent variable and answering a few questions as per my knowledge by using various visulizational techniques.
-2. Feature Engineering using medical domain knowledge.
-3. Data encoding with custom function for Normalization.
-4. Hyperparameter tuning to find best parameters.
+![](https://github.com/Tashish97/Ashish-Portfolio/blob/main/images/1_9BmQv73jYA-XOODWt4k-2Q.png)
+## Work Done:  
+1. EDA on independent variable(s) and dependent variable and answering a few questions as per my knowledge by using various visulizational techniques.  
+2. Feature Engineering using medical domain knowledge.  
+3. Data encoding with custom function for Normalization.  
+4. Hyperparameter tuning to find best parameters.  
 5. Validation of model using AUC_ROC and Confusion Matrix.  
-**Please look into the pdf for quick look at my work**
